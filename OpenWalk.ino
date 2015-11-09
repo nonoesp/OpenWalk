@@ -35,15 +35,26 @@
 
 #include <Servo.h>
 
+/*
+ * ServoController Class
+ * 
+ * A wrapper to interact with the Servo class.
+ */
+
 class ServoController {
   public : Servo servo;
-  public : int position;
+  public : double position;
   public : int home;
-
   public : int goal;
+  public : double speed;
+  public : bool isGoingUp;
+  public : bool shouldEase;
 
   public : void init() {
     this->goHome();
+    isGoingUp = true;
+    shouldEase = false;
+    speed = 1.0;
   }
 
   public : void goHome() {
@@ -52,7 +63,38 @@ class ServoController {
   }
 
   public : void moveTowardsGoal() {
-    this->servo.write(this->goal);
+
+    if(shouldEase) {
+      double difference = this->goal - this->position;
+      this->position += difference*0.1;
+      this->servo.write(this->position);      
+    } else {
+      if(this->position < this->goal) {
+        this->position += this->speed;
+      } else {
+        this->position -= this->speed;;
+      }
+      this->servo.write(this->position);   
+    }
+
+
+    
+  }
+
+  public : bool reachedGoal() {
+    float margin = 0.5;
+    if(this->goal < this->position) {
+      if(this->goal + margin >= this->position) {
+        this->position = this->goal;
+        return true;
+      }
+    } else {
+      if(this->goal - margin <= this->position) {
+        this->position = this->goal;
+        return true;
+      }
+    }
+    return false;
   }
 };
 
@@ -62,9 +104,10 @@ int delayTime = 10;
 
 // Servo Controllers
 ServoController servoControllerA;
+ServoController servoControllerB;
 
 // Home Angles
-int homeAngleA = 110;
+int homeAngleA = 100;
 int homeAngleB = 46;
 
 // Serial connection
@@ -72,54 +115,27 @@ char val; // Data received from the serial port
 
 void setup() {
   Serial.begin(9600);
-
   servoControllerA.servo.attach(9);
   servoControllerA.home = homeAngleA;
   servoControllerA.init();
-
 }
 
 void loop() {
-  servoControllerA.goal = 120;
+  Serial.println(servoControllerA.position);  
+
+  if(servoControllerA.isGoingUp) {
+    servoControllerA.goal = 130;
+    servoControllerA.speed = 1.0;
+  } else {
+    servoControllerA.goal = 80;
+    servoControllerA.speed = 1.0;
+  }
+
+  if(servoControllerA.reachedGoal()) {
+    // Reached goal, changed direction
+    servoControllerA.isGoingUp = !servoControllerA.isGoingUp;
+  }
+
   servoControllerA.moveTowardsGoal();
-  delay(3000);
-  servoControllerA.goHome();
-  delay(3000);
+  delay(delayTime*0.2);
 }
-
-/*
-
-void moveServoTowards(Servo servo, int position, double goalAngleStart, double goalAngleEnd, double delayFactor) {
-
-    float goal;
-    
-    if(isPhaseA) {
-      goal = goalAngleStart;
-      if(position >= goalAngleStart - 5)
-      {
-        isPhaseA = false;
-      }
-    } else {
-       goal = goalAngleEnd;
-      if(position <= goalAngleEnd + 5) {
-        isPhaseA = true;
-        cycleCount++;        
-      }
-    }
-    
-    // Ease Towards Goal
-    double difference = goal - position;
-    position += difference*0.8;
-    servo.write(position);
-    delay(delayTime*delayFactor);    
-
-    // Stop After X Cycles
-    if(cycleCount > 2) {
-      cycleCount = 0;
-      servo.write(centralAngleA);
-      delay(10000);
-    }    
-}
-*/
-
-
