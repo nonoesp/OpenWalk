@@ -109,16 +109,26 @@ int homeAngleB = 46;
 // Serial connection
 char val; // Data received from the serial port
 
-void setup() {
+void setup() { // This code just runs once
+  
   Serial.begin(9600);
+
+  // ServoControllerA
   servoControllerA.servo.attach(9);
   servoControllerA.home = homeAngleA;
   servoControllerA.init();
+  
+  // ServoControllerB
+  servoControllerB.servo.attach(10);
+  servoControllerB.home = homeAngleB;
+  servoControllerB.init();
 }
 
-void loop() {
-  Serial.println(servoControllerA.position);  
+void loop() { // This code runs repeteadly
+  
+  Serial.println("A: " + servoControllerA.position + ", B: " + servoControllerB.position);  
 
+  // ServoControllerA
   if(servoControllerA.isGoingUp) {
     servoControllerA.goal = 130;
     servoControllerA.speed = 1.0;
@@ -133,5 +143,7 @@ void loop() {
   }
 
   servoControllerA.moveTowardsGoal();
+
+  // Delay in between movements
   delay(delayTime*0.2);
 }
