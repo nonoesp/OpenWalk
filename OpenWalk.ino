@@ -63,7 +63,6 @@ class ServoController {
   }
 
   public : void moveTowardsGoal() {
-
     if(shouldEase) {
       double difference = this->goal - this->position;
       this->position += difference*0.1;
@@ -76,9 +75,6 @@ class ServoController {
       }
       this->servo.write(this->position);   
     }
-
-
-    
   }
 
   public : bool reachedGoal() {
