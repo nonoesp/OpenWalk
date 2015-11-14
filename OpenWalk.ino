@@ -62,6 +62,10 @@ class ServoController {
     this->servo.write(home);
   }
 
+  public : void setGoal(double relativeGoal) {
+    this->goal = this->home + relativeGoal;
+  }
+
   public : void moveTowardsGoal() {
     if(shouldEase) {
       double difference = this->goal - this->position;
@@ -103,7 +107,7 @@ ServoController servoControllerA;
 ServoController servoControllerB;
 
 // Home Angles
-int homeAngleA = 100;
+int homeAngleA = 90;
 int homeAngleB = 46;
 
 // Serial connection
@@ -125,24 +129,30 @@ void setup() { // This code just runs once
 }
 
 void loop() { // This code runs repeteadly
-  
-  Serial.println("A: " + servoControllerA.position + ", B: " + servoControllerB.position);  
 
+  Serial.println(servoControllerA.position);
+  //Serial.println("A: " + servoControllerA.position + ", B: " + servoControllerB.position);  
+
+if(1 == 1) {
   // ServoControllerA
   if(servoControllerA.isGoingUp) {
-    servoControllerA.goal = 130;
-    servoControllerA.speed = 1.0;
+    //servoControllerA.goal = 10;
+    servoControllerA.setGoal(80.0); // Counterclockwise
+    servoControllerA.speed = 0.3;
   } else {
-    servoControllerA.goal = 80;
-    servoControllerA.speed = 1.0;
+    //servoControllerA.goal = -10;
+    servoControllerA.setGoal(-80.0); // Clockwise
+    servoControllerA.speed = 0.3;
   }
 
   if(servoControllerA.reachedGoal()) {
     // Reached goal, changed direction
     servoControllerA.isGoingUp = !servoControllerA.isGoingUp;
+    delay(0);
   }
 
   servoControllerA.moveTowardsGoal();
+}
 
   // Delay in between movements
   delay(delayTime*0.2);
