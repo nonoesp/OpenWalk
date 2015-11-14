@@ -2,7 +2,7 @@
 
 A plug-and-play open-source robot who can walk that works with Arduino.
 
-[Check the source](https://github.com/nonoesp/OpenWalk/blob/master/README.md).
+[Check the source](https://github.com/nonoesp/OpenWalk/blob/master/OpenWalk.ino).
 
 # About Us
 
