@@ -108,7 +108,8 @@ ServoController servoControllerB;
 
 // Home Angles
 int homeAngleA = 90;
-int homeAngleB = 46;
+int homeAngleB = 90;
+
 
 // Serial connection
 char val; // Data received from the serial port
@@ -133,26 +134,52 @@ void loop() { // This code runs repeteadly
   Serial.println(servoControllerA.position);
   //Serial.println("A: " + servoControllerA.position + ", B: " + servoControllerB.position);  
 
-if(1 == 1) {
-  // ServoControllerA
-  if(servoControllerA.isGoingUp) {
-    //servoControllerA.goal = 10;
-    servoControllerA.setGoal(80.0); // Counterclockwise
-    servoControllerA.speed = 0.3;
-  } else {
-    //servoControllerA.goal = -10;
-    servoControllerA.setGoal(-80.0); // Clockwise
-    servoControllerA.speed = 0.3;
+  float vel = 0.2;
+
+  float angle = 15.0;
+
+  float run = true;
+
+  float turn = 0.0;
+
+  if(run) {
+    // ServoControllerA
+    //float change = 30.0;
+    if(servoControllerA.isGoingUp) {
+      servoControllerA.setGoal(angle-turn); // Counterclockwise
+      servoControllerA.speed = vel;//1.2;
+    } else {
+      servoControllerA.setGoal(-angle-turn); // Clockwise
+      servoControllerA.speed = vel;//1.2;
+    }
+  
+    if(servoControllerA.reachedGoal()) {
+      // Reached goal, changed direction
+      servoControllerA.isGoingUp = !servoControllerA.isGoingUp;
+      delay(0);
+    }
+    
+    servoControllerA.moveTowardsGoal();  
   }
 
-  if(servoControllerA.reachedGoal()) {
-    // Reached goal, changed direction
-    servoControllerA.isGoingUp = !servoControllerA.isGoingUp;
-    delay(0);
+
+  if(run){
+    if(!servoControllerA.isGoingUp) {
+      servoControllerB.setGoal(angle); // Counterclockwise
+      servoControllerB.speed = vel;    
+    } else {
+      servoControllerB.setGoal(-angle); // Clockwise
+      servoControllerB.speed = vel;    
+    }
+    if(servoControllerB.reachedGoal()) {
+      // Reached goal, changed direction
+      servoControllerB.isGoingUp = !servoControllerB.isGoingUp;
+      delay(0);
+    }
+    
+    servoControllerB.moveTowardsGoal();  
   }
 
-  servoControllerA.moveTowardsGoal();
-}
 
   // Delay in between movements
   delay(delayTime*0.2);
