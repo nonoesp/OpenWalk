@@ -36,151 +36,112 @@
 #include <Servo.h>
 
 /*
- * ServoController Class
+ * ServoWrapper Class
  * 
  * A wrapper to interact with the Servo class.
  */
 
-class ServoController {
+class ServoWrapper {
   public : Servo servo;
   public : double position;
-  public : int home;
-  public : int goal;
-  public : double speed;
-  public : bool isGoingUp;
-  public : bool shouldEase;
+  public : int homeAngle;
+  
+  public : float duration;
+  public : float current;
 
-  public : void init() {
+  public : void init(int _homeAngle) {
+    this->homeAngle = _homeAngle;
+    this->position = this->homeAngle;
     this->goHome();
-    isGoingUp = true;
-    shouldEase = false;
-    speed = 1.0;
+    this->duration = 100;
   }
 
   public : void goHome() {
-    this->position = this->home;
-    this->servo.write(home);
+    this->servo.write(homeAngle);
   }
 
-  public : void setGoal(double relativeGoal) {
-    this->goal = this->home + relativeGoal;
+  public : void move(float from, float to, float steps) {
+    float step = (to - from) / (steps * this->duration);
+    this->position += step;
   }
 
-  public : void moveTowardsGoal() {
-    if(shouldEase) {
-      double difference = this->goal - this->position;
-      this->position += difference*0.1;
-      this->servo.write(this->position);      
-    } else {
-      if(this->position < this->goal) {
-        this->position += this->speed;
-      } else {
-        this->position -= this->speed;;
-      }
-      this->servo.write(this->position);   
+  public : void update() {
+    this->current++;
+    if(this->current > this->duration) {
+      this->current = 0;
     }
   }
 
-  public : bool reachedGoal() {
-    float margin = 0.5;
-    if(this->goal < this->position) {
-      if(this->goal + margin >= this->position) {
-        this->position = this->goal;
-        return true;
-      }
-    } else {
-      if(this->goal - margin <= this->position) {
-        this->position = this->goal;
-        return true;
-      }
-    }
-    return false;
+  public : void log() {
+    Serial.print("current: ");
+    Serial.print(this->current);
+    Serial.print(" position: ");
+    Serial.print(this->position);
+    Serial.println();       
   }
 };
+
+// --------------------------------------------------------
 
 // Variables
 int cycleCount = 0;
 int delayTime = 10;
 
-// Servo Controllers
-ServoController servoControllerA;
-ServoController servoControllerB;
+// Servo Wrappers
+ServoWrapper ServoA;
+ServoWrapper ServoB;
 
 // Home Angles
 int homeAngleA = 90;
 int homeAngleB = 90;
 
-
 // Serial connection
 char val; // Data received from the serial port
 
 void setup() { // This code just runs once
-  
-  Serial.begin(9600);
 
-  // ServoControllerA
-  servoControllerA.servo.attach(9);
-  servoControllerA.home = homeAngleA;
-  servoControllerA.init();
+  homeAngleA = 90;
   
-  // ServoControllerB
-  servoControllerB.servo.attach(10);
-  servoControllerB.home = homeAngleB;
-  servoControllerB.init();
+  Serial.begin(19200);
+
+  // ServoA
+  ServoA.init(homeAngleA);  
+  ServoA.servo.attach(9);  
+  ServoA.duration = 10000;
 }
+
+int index = 0;
 
 void loop() { // This code runs repeteadly
 
-  Serial.println(servoControllerA.position);
-  //Serial.println("A: " + servoControllerA.position + ", B: " + servoControllerB.position);  
-
-  float vel = 0.2;
-
-  float angle = 15.0;
-
-  float run = true;
-
-  float turn = 0.0;
-
-  if(run) {
-    // ServoControllerA
-    //float change = 30.0;
-    if(servoControllerA.isGoingUp) {
-      servoControllerA.setGoal(angle-turn); // Counterclockwise
-      servoControllerA.speed = vel;//1.2;
-    } else {
-      servoControllerA.setGoal(-angle-turn); // Clockwise
-      servoControllerA.speed = vel;//1.2;
-    }
-  
-    if(servoControllerA.reachedGoal()) {
-      // Reached goal, changed direction
-      servoControllerA.isGoingUp = !servoControllerA.isGoingUp;
-      delay(0);
-    }
+  if(index == 200) {
+    index = 0;
     
-    servoControllerA.moveTowardsGoal();  
+    ServoA.log();    
+  } else {
+    index++;
   }
 
+  // Working
 
-  if(run){
-    if(!servoControllerA.isGoingUp) {
-      servoControllerB.setGoal(angle); // Counterclockwise
-      servoControllerB.speed = vel;    
-    } else {
-      servoControllerB.setGoal(-angle); // Clockwise
-      servoControllerB.speed = vel;    
-    }
-    if(servoControllerB.reachedGoal()) {
-      // Reached goal, changed direction
-      servoControllerB.isGoingUp = !servoControllerB.isGoingUp;
-      delay(0);
-    }
-    
-    servoControllerB.moveTowardsGoal();  
+  ServoA.update();
+
+  if(ServoA.current <= ServoA.duration * 0.5) { // 50%
+    ServoA.move(ServoA.homeAngle, 50.0, 0.5);
   }
 
+  if(ServoA.current > ServoA.duration * 0.5 && // 40%
+    ServoA.current <= ServoA.duration * 0.9) {
+    ServoA.move(50.0, 30.0, 0.4);    
+  }
+
+  if(ServoA.current > ServoA.duration * 0.9 && // 10%
+    ServoA.current <= ServoA.duration * 1.0) {
+    ServoA.move(30.0, ServoA.homeAngle, 0.1);    
+  }  
 
   // Delay in between movements
-  delay(delayTime*0.2);
+  //delay(delayTime*0.2);
+  delay(1);
 }
+
