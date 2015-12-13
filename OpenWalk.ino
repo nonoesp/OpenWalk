@@ -45,15 +45,17 @@ class ServoWrapper {
   public : Servo servo;
   public : double position;
   public : int homeAngle;
+  public : int sweepAngle;
   
   public : float duration;
   public : float current;
+  public : String name;
 
-  public : void init(int _homeAngle) {
+  public : void init(int _sweepAngle, int _homeAngle) {
     this->homeAngle = _homeAngle;
-    this->position = this->homeAngle;
-    this->goHome();
-    this->duration = 100;
+    this->sweepAngle = _sweepAngle;
+    this->position = this->sweepAngle;
+    this->duration = 100; // Default
   }
 
   public : void goHome() {
@@ -63,20 +65,33 @@ class ServoWrapper {
   public : void move(float from, float to, float steps) {
     float step = (to - from) / (steps * this->duration);
     this->position += step;
+    this->updateAngle();
+  }
+
+  public : int absoluteAngle() {
+    return this->position + this->homeAngle;
+  }
+
+  public : void updateAngle() {
+     this->servo.write(this->absoluteAngle()); 
   }
 
   public : void update() {
     this->current++;
     if(this->current > this->duration) {
       this->current = 0;
+      this->position = this->sweepAngle;
     }
   }
 
   public : void log() {
-    Serial.print("current: ");
+    Serial.print(this->name);
+    Serial.print(" -- current: ");
     Serial.print(this->current);
     Serial.print(" position: ");
     Serial.print(this->position);
+    Serial.print(" absoluteAngle: ");
+    Serial.print(this->absoluteAngle());
     Serial.println();       
   }
 };
@@ -99,48 +114,67 @@ int homeAngleB = 90;
 char val; // Data received from the serial port
 
 void setup() { // This code just runs once
-
-  homeAngleA = 90;
   
   Serial.begin(19200);
 
-  // ServoA
-  ServoA.init(homeAngleA);  
-  ServoA.servo.attach(9);  
+  // ServoA (Front)
+  ServoA.init(-30, homeAngleA);
+  ServoA.name = "Front";  
+  ServoA.servo.attach(9);
   ServoA.duration = 10000;
-}
 
-int index = 0;
+  // ServoB (Rear)
+  ServoB.init(30, homeAngleB);
+  ServoB.name = "Rear ";  
+  ServoB.servo.attach(10);
+  ServoB.duration = 10000;
+}
 
 void loop() { // This code runs repeteadly
 
-  if(index == 200) {
-    index = 0;
+  if(cycleCount == 200) {
+    cycleCount = 0;
     
-    ServoA.log();    
+    ServoA.log();
+    ServoB.log(); 
   } else {
-    index++;
+    cycleCount++;
   }
 
-  // Working
+  // --------------------------------------------
+  // ServoA Behavior
+  // --------------------------------------------
 
   ServoA.update();
 
   if(ServoA.current <= ServoA.duration * 0.5) { // 50%
-    ServoA.move(ServoA.homeAngle, 50.0, 0.5);
+    ServoA.move(ServoA.sweepAngle, -ServoA.sweepAngle, 0.5);
   }
 
-  if(ServoA.current > ServoA.duration * 0.5 && // 40%
-    ServoA.current <= ServoA.duration * 0.9) {
-    ServoA.move(50.0, 30.0, 0.4);    
-  }
-
-  if(ServoA.current > ServoA.duration * 0.9 && // 10%
+  if(ServoA.current > ServoA.duration * 0.5 && // 50%
     ServoA.current <= ServoA.duration * 1.0) {
-    ServoA.move(30.0, ServoA.homeAngle, 0.1);    
-  }  
+    ServoA.move(-ServoA.sweepAngle, ServoA.sweepAngle, 0.5);    
+  }
+  
+  // --------------------------------------------
+  // ServoB Behavior
+  // --------------------------------------------
 
-  // Delay in between movements
+  ServoB.update();
+
+  if(ServoB.current <= ServoB.duration * 0.5) { // 50%
+    ServoB.move(ServoB.sweepAngle, -ServoB.sweepAngle, 0.5);
+  }
+
+  if(ServoB.current > ServoB.duration * 0.5 && // 50%
+    ServoB.current <= ServoB.duration * 1.0) {
+    ServoB.move(-ServoB.sweepAngle, ServoB.sweepAngle, 0.5);    
+  }
+
+  // --------------------------------------------
+  // Delay
+  // --------------------------------------------
+  
   //delay(delayTime*0.2);
   delay(1);
 }
