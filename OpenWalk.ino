@@ -46,7 +46,7 @@ class ServoWrapper {
   public : double position;
   public : int homeAngle;
   public : int sweepAngle;
-  
+
   public : float duration;
   public : float current;
   public : String name;
@@ -71,6 +71,8 @@ class ServoWrapper {
   public : int absoluteAngle() {
     return this->position + this->homeAngle;
   }
+
+  public : 
 
   public : void updateAngle() {
      this->servo.write(this->absoluteAngle()); 
@@ -101,6 +103,7 @@ class ServoWrapper {
 // Variables
 int cycleCount = 0;
 int delayTime = 10;
+String walkingMode = "Default";
 
 // Servo Wrappers
 ServoWrapper ServoA;
@@ -114,62 +117,54 @@ int homeAngleB = 90;
 char val; // Data received from the serial port
 
 void setup() { // This code just runs once
-  
+
+  // Initialization
   Serial.begin(19200);
-
-  // ServoA (Front)
-  ServoA.init(-30, homeAngleA);
-  ServoA.name = "Front";  
+  
+  // Servo A (Front)
+  ServoA.name = "Front"; 
   ServoA.servo.attach(9);
-  ServoA.duration = 10000;
-
-  // ServoB (Rear)
-  ServoB.init(30, homeAngleB);
+  
+  // Servo B (Rear)
   ServoB.name = "Rear ";  
-  ServoB.servo.attach(10);
-  ServoB.duration = 10000;
+  ServoB.servo.attach(10);     
+  
+  // Do something
+  SetWalkingMode("Forward");
 }
 
 void loop() { // This code runs repeteadly
 
-  if(cycleCount == 200) {
-    cycleCount = 0;
-    
+  Serial.println(cycleCount);
+
+  if(cycleCount == 50) {
     ServoA.log();
-    ServoB.log(); 
-  } else {
-    cycleCount++;
+    ServoB.log();     
   }
 
-  // --------------------------------------------
-  // ServoA Behavior
-  // --------------------------------------------
-
-  ServoA.update();
-
-  if(ServoA.current <= ServoA.duration * 0.5) { // 50%
-    ServoA.move(ServoA.sweepAngle, -ServoA.sweepAngle, 0.5);
+  if(cycleCount == 3000) {
+    //SetWalkingMode("Backwards");    
+    SetWalkingMode("ForwardSteerLeft");
   }
 
-  if(ServoA.current > ServoA.duration * 0.5 && // 50%
-    ServoA.current <= ServoA.duration * 1.0) {
-    ServoA.move(-ServoA.sweepAngle, ServoA.sweepAngle, 0.5);    
+  if(cycleCount == 6000) {
+    SetWalkingMode("Forward");
+  }
+
+  if(cycleCount == 9000) {
+    //SetWalkingMode("Backwards");    
+    SetWalkingMode("ForwardSteerRight");
+  }
+
+  if(cycleCount == 12000) {
+    SetWalkingMode("Forward");
+    //SetWalkingMode("Rest");
+    cycleCount = 0;    
   }
   
-  // --------------------------------------------
-  // ServoB Behavior
-  // --------------------------------------------
+  cycleCount++;
 
-  ServoB.update();
-
-  if(ServoB.current <= ServoB.duration * 0.5) { // 50%
-    ServoB.move(ServoB.sweepAngle, -ServoB.sweepAngle, 0.5);
-  }
-
-  if(ServoB.current > ServoB.duration * 0.5 && // 50%
-    ServoB.current <= ServoB.duration * 1.0) {
-    ServoB.move(-ServoB.sweepAngle, ServoB.sweepAngle, 0.5);    
-  }
+  Move();
 
   // --------------------------------------------
   // Delay
@@ -178,4 +173,127 @@ void loop() { // This code runs repeteadly
   //delay(delayTime*0.2);
   delay(1);
 }
+
+void SetWalkingMode(String m) {
+  walkingMode = m;
+  if(m == "Default" || m == "Forward") {
+    WalkForwardSetup();
+  }
+  if(m == "Backwards") {
+    WalkBackwardsSetup();
+  }
+  if(m == "ForwardSteerRight") {
+    WalkForwardSteerRightSetup();
+  }
+  if(m == "ForwardSteerLeft") {
+    WalkForwardSteerLeftSetup();
+  }  
+}
+
+void Move() {
+  
+  if (walkingMode == "Default" || walkingMode == "Forward" || walkingMode == "Backwards") {
+
+    // ServoA    
+    ServoA.update();
+    
+    if(ServoA.current <= ServoA.duration * 0.5) { // 50%
+      ServoA.move(ServoA.sweepAngle, -ServoA.sweepAngle, 0.5);
+    }
+    
+    if(ServoA.current > ServoA.duration * 0.5 && // 50%
+      ServoA.current <= ServoA.duration * 1.0) {
+      ServoA.move(-ServoA.sweepAngle, ServoA.sweepAngle, 0.5);    
+    }
+    
+    // ServoB Behavior
+    ServoB.update();
+    
+    if(ServoB.current <= ServoB.duration * 0.5) { // 50%
+      ServoB.move(ServoB.sweepAngle, -ServoB.sweepAngle, 0.5);
+    }
+    
+    if(ServoB.current > ServoB.duration * 0.5 && // 50%
+      ServoB.current <= ServoB.duration * 1.0) {
+      ServoB.move(-ServoB.sweepAngle, ServoB.sweepAngle, 0.5);    
+    }    
+  }
+
+  if (walkingMode == "ForwardSteerRight" || walkingMode == "ForwardSteerLeft") {
+    
+    // ServoA    
+    ServoA.update();
+    
+    if(ServoA.current <= ServoA.duration * 0.5) { // 50%
+      ServoA.move(ServoA.sweepAngle, -ServoA.sweepAngle, 0.5);
+    }
+    
+    if(ServoA.current > ServoA.duration * 0.5 && // 50%
+      ServoA.current <= ServoA.duration * 1.0) {
+      ServoA.move(-ServoA.sweepAngle, ServoA.sweepAngle, 0.5);    
+    }      
+  }
+}
+
+void WalkForwardSetup() {
+  float speed = 2.0;
+
+  // ServoA (Front)
+  ServoA.init(-30, homeAngleA);
+  ServoA.duration = 1000 / speed;
+
+  // ServoB (Rear)
+  ServoB.init(-30, homeAngleB);
+  ServoB.duration = 1000 / speed;
+}
+
+
+void WalkBackwardsSetup() {
+  float speed = 2.0;
+
+  // ServoA (Front)
+  ServoA.init(-30, homeAngleA);
+  ServoA.duration = 1000 / speed;
+
+  // ServoB (Rear)
+  ServoB.init(+30, homeAngleB);
+  ServoB.duration = 1000 / speed;
+}
+
+void WalkForwardSteerRightSetup() {
+  
+  float speed = 2.0;
+
+  // ServoA (Front)
+  ServoA.init(-30, homeAngleA);
+  ServoA.duration = 1000 / speed;
+
+  //speed = 2.0;
+
+  // ServoB (Rear)
+  //ServoB.init(20, 50);
+//  ServoB.duration = 1000 / speed;
+
+  ServoB.position = -50;
+  ServoB.updateAngle();
+}
+
+void WalkForwardSteerLeftSetup() {
+  
+  float speed = 2.0;
+
+  // ServoA (Front)
+  ServoA.init(-30, homeAngleA);
+  ServoA.duration = 1000 / speed;
+
+  //speed = 2.0;
+
+  // ServoB (Rear)
+  //ServoB.init(20, 50);
+//  ServoB.duration = 1000 / speed;
+
+  ServoB.position = 50;
+  ServoB.updateAngle();
+}
+
 
